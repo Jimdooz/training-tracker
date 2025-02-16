@@ -3,3 +3,15 @@
 .ͼ1.cm-focused {
     outline: none;
 }
+
+.cm-tooltip {
+  border: none !important;
+}
+
+.cm-tooltip-autocomplete > ul {
+  font-family: inherit !important;
+}
+
+.cm-tooltip-autocomplete > ul > li {
+  padding: 4px 8px !important;
+}
