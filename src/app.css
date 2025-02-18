@@ -15,3 +15,7 @@
 .cm-tooltip-autocomplete > ul > li {
   padding: 4px 8px !important;
 }
+
+.cm-content {
+  padding-bottom: 20rem;
+}
