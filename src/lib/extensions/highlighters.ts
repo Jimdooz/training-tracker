@@ -7,19 +7,19 @@ interface HighlightConfig {
     matchGroupName?: string;
 }
 
-const kgMark = Decoration.mark({ class: "text-blue-400 font-bold" });
-const weightMark = Decoration.mark({ class: "bg-blue-200 text-blue-500 px-1 rounded font-bold border-blue-500" });
+const typeMark = Decoration.mark({ class: "text-blue-400 font-bold" });
+const weightMark = Decoration.mark({ class: "bg-blue-100 text-blue-500 px-1 rounded font-bold border-blue-500" });
 const sameMark = Decoration.mark({ class: "text-neutral-400" });
 const classAMark = Decoration.mark({ class: "bg-green-200 text-green-500 px-1 rounded font-bold border-green-500" });
 const classBMark = Decoration.mark({ class: "bg-orange-200 text-orange-500 px-1 rounded font-bold border-yellow-500" });
 const classCMark = Decoration.mark({ class: "bg-red-200 text-red-500 px-1 rounded font-bold border-red-500" });
 const dateMark = Decoration.mark({ class: "text-neutral-400 font-bold" });
 const titleMark = Decoration.mark({ class: "text-xl font-bold" });
-const repMark = Decoration.mark({ class: "text-blue-400 font-bold" });
+const repMark = Decoration.mark({ class: "text-neutral-500" });
 
 const highlightConfigs: HighlightConfig[] = [
-    { regex: /kg/g, decoration: kgMark },
-    { regex: /\d+(\/\d+)*kg/g, decoration: weightMark },
+    { regex: /(kg|min)/g, decoration: typeMark },
+    { regex: /-?\d+(\/-?\d+)*(kg|min|s)/g, decoration: weightMark },
     { regex: /\B(?<M>\/)\B/g, decoration: sameMark, matchGroupName: 'M' },
     { regex: /\b(?<M>A[0-9]*(?:\/\d*)*)\b/g, decoration: classAMark, matchGroupName: 'M' },
     { regex: /\b(?<M>B[0-9]*(?:\/\d*)*)\b/g, decoration: classBMark, matchGroupName: 'M' },
@@ -27,7 +27,7 @@ const highlightConfigs: HighlightConfig[] = [
     { regex: /\d{2}\/\d{2}\/\d{4}/g, decoration: dateMark },
     { regex: /\d{2}\/\d{2}\/\d{4} \d{2}:\d{2}/g, decoration: dateMark },
     { regex: /# .*/g, decoration: titleMark },
-    { regex: /(?<M>\(\d+x\d+\))/g, decoration: repMark, matchGroupName: 'M' },
+    { regex: /(?<M>\(.+((x|\*).+)\))/g, decoration: repMark, matchGroupName: 'M' },
 ];
 
 export const appHighlighter = ViewPlugin.fromClass(class {

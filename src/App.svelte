@@ -24,7 +24,9 @@
 
   const updateListener = EditorView.updateListener.of((update) => {
     if (update.docChanged) {
-      saveContent(update.state.doc.toString());
+      const content = update.state.doc.toString();
+      parseContent(content);
+      saveContent(content);
     }
   });
 
