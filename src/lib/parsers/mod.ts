@@ -599,7 +599,7 @@ function parseEffort(effortStr: string, target?: TargetType): Effort[] | null {
                 if (loadMatch) {
                     load = {
                         value: parseInt(loadMatch[1]),
-                        unit: resistance.includes('kg') ? 'kg' : ''
+                        unit: 'kg'
                     };
                 }
 
