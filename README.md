@@ -1,47 +1,153 @@
-# Svelte + TS + Vite
+# Training Tracker
 
-This template should help get you started developing with Svelte and TypeScript in Vite.
+Training Tracker is a specialized note-taking application designed for fitness enthusiasts to easily track their workouts. It features a customized editor with syntax highlighting specifically tailored for workout notation, making it effortless to record and analyze your training progress.
 
-## Recommended IDE Setup
+## Features
 
-[VS Code](https://code.visualstudio.com/) + [Svelte](https://marketplace.visualstudio.com/items?itemName=svelte.svelte-vscode).
+- **Specialized Editor**: Text editor with syntax highlighting specifically designed for workout notation
+- **Smart Parsing**: Automatically understands and structures your workout data
+- **Local Storage**: Automatically saves your workouts to your browser's local storage
+- **Flexible Notation**: Supports various notation styles for different types of exercises and training formats
+- **Time & Rep Tracking**: Easily track both time-based exercises and repetition-based exercises
 
-## Need an official Svelte framework?
+## Installation
 
-Check out [SvelteKit](https://github.com/sveltejs/kit#readme), which is also powered by Vite. Deploy anywhere with its serverless-first approach and adapt to various platforms, with out of the box support for TypeScript, SCSS, and Less, and easily-added support for mdsvex, GraphQL, PostCSS, Tailwind CSS, and more.
+```bash
+# Clone the repository
+git clone https://github.com/yourusername/training-tracker.git
 
-## Technical considerations
+# Navigate to the directory
+cd training-tracker
 
-**Why use this over SvelteKit?**
+# Install dependencies
+pnpm install
 
-- It brings its own routing solution which might not be preferable for some users.
-- It is first and foremost a framework that just happens to use Vite under the hood, not a Vite app.
-
-This template contains as little as possible to get started with Vite + TypeScript + Svelte, while taking into account the developer experience with regards to HMR and intellisense. It demonstrates capabilities on par with the other `create-vite` templates and is a good starting point for beginners dipping their toes into a Vite + Svelte project.
-
-Should you later need the extended capabilities and extensibility provided by SvelteKit, the template has been structured similarly to SvelteKit so that it is easy to migrate.
-
-**Why `global.d.ts` instead of `compilerOptions.types` inside `jsconfig.json` or `tsconfig.json`?**
-
-Setting `compilerOptions.types` shuts out all other types not explicitly listed in the configuration. Using triple-slash references keeps the default TypeScript setting of accepting type information from the entire workspace, while also adding `svelte` and `vite/client` type information.
-
-**Why include `.vscode/extensions.json`?**
-
-Other templates indirectly recommend extensions via the README, but this file allows VS Code to prompt the user to install the recommended extension upon opening the project.
-
-**Why enable `allowJs` in the TS template?**
-
-While `allowJs: false` would indeed prevent the use of `.js` files in the project, it does not prevent the use of JavaScript syntax in `.svelte` files. In addition, it would force `checkJs: false`, bringing the worst of both worlds: not being able to guarantee the entire codebase is TypeScript, and also having worse typechecking for the existing JavaScript. In addition, there are valid use cases in which a mixed codebase may be relevant.
-
-**Why is HMR not preserving my local component state?**
-
-HMR state preservation comes with a number of gotchas! It has been disabled by default in both `svelte-hmr` and `@sveltejs/vite-plugin-svelte` due to its often surprising behavior. You can read the details [here](https://github.com/rixo/svelte-hmr#svelte-hmr).
-
-If you have state that's important to retain within a component, consider creating an external store which would not be replaced by HMR.
-
-```ts
-// store.ts
-// An extremely simple external store
-import { writable } from 'svelte/store'
-export default writable(0)
+# Run the development server
+pnpm dev
 ```
+
+## Tech Stack
+
+- Svelte 5
+- TypeScript
+- Vite
+- TailwindCSS
+- CodeMirror 6
+
+## Workout Notation Syntax
+
+Training Tracker uses an intuitive, flexible notation system that allows you to quickly record your workouts while preserving all important data.
+
+### Basic Notation
+
+```
+# Workout Title
+DD/MM/YYYY (optional date)
+
+Exercise Name (sets×reps) : weight state, weight state, ...
+```
+
+### Notation Elements
+
+- **Exercise Definition**: `Exercise Name (sets×reps)` or `Exercise Name (sets×time)`
+  - Examples: `Bench Press (4x8)`, `Plank (3x1min)`
+
+- **Completion States**:
+  - `A` = All repetitions completed successfully
+  - `B` = All repetitions completed but with struggle
+  - `C` + number = Partial completion (e.g., `C7` means completed 7 reps)
+  - `C` + time = Partial time completion (e.g., `C45s` means completed 45 seconds)
+
+- **Set Notation**:
+  - Single set: `80kg A` (80kg, all reps completed)
+  - Drop set: `80/70/60kg C8/6/4` (started with 80kg for 8 reps, then 70kg for 6 reps, then 60kg for 4 reps)
+  - Repeat previous set: `/` (same as previous set)
+  - Repeat with different state: `/ C7` (same weight as previous set, but only 7 reps completed)
+
+- **Comments**: Add comments in single quotes
+  - Example: `100kg A 'felt strong today'`
+
+### Example Workouts
+
+```
+# Push Day
+20/02/2025
+
+Bench Press (4x8) : 45kg A, / C7, 40kg C6, 35kg A
+Incline Press (4x10):
+- 25kg A
+- 30kg A
+- 25kg A
+- / C8
+Cable Flyes (3x12):
+- 10kg C10
+- 10/5kg C7/5 'shoulders felt tight'
+- 7.5/5kg C4/2
+```
+
+```
+# Leg Day
+27/02/2025
+
+Squats (4x10) :
+- 100kg A, /, /, / 'increase weight next time'
+Hip Thrust (4x12):
+- 120kg A, /, /, /
+Standing Calf Raises (4*12):
+- 0kg A, /, /,/
+Plank (4*1min) : A, /, /, C55s 'core fatigue'
+```
+
+## Data Structure
+
+When parsed, your workout data is structured as follows:
+
+```typescript
+interface TrainingSession {
+  title: string;
+  date: Date | null;
+  exercises: Exercise[];
+  comment?: string;
+}
+
+interface Exercise {
+  name: string;
+  targetSets: number;
+  target: TargetType; // reps or time
+  sets: Set[];
+  comment?: string;
+}
+
+interface Set {
+  efforts: Effort[];
+  comment?: string;
+}
+
+interface Effort {
+  load: LoadValue | null;
+  result: EffortResult;
+  isRepeat?: boolean;
+}
+```
+
+## Future Plans
+
+- Exercise Statistics & Charts
+- Exercise Auto-Completion
+- Workout Generation
+- Export/Import functionality
+- Mobile App
+
+## Contributing
+
+Contributions are welcome! Please feel free to submit a Pull Request.
+
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add some amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
+
+## License
+
+This project is licensed under the MIT License - see the LICENSE file for details.
