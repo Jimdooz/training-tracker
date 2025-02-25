@@ -19,7 +19,7 @@
     type CompletionResult,
   } from "@codemirror/autocomplete";
   import { appHighlighter } from "./lib/extensions/highlighters";
-  import { dateCompletions } from "./lib/extensions/completions";
+  import { dateCompletions, exerciseCompletions, formatDateTime } from "./lib/extensions/completions";
   import { parseContent } from "./lib/parsers/mod";
 
   const STORAGE_KEY = "training-tracker-content";
@@ -60,7 +60,10 @@
         history(),
         appHighlighter,
         autocompletion({
-          override: [dateCompletions],
+          override: [
+            dateCompletions,
+            (context: CompletionContext) => exerciseCompletions(view?.state.doc.toString() || "")(context)
+          ],
         }),
         updateListener,
         EditorView.lineWrapping,
@@ -75,6 +78,25 @@
     return view;
   }
 
+  function createNewSession() {
+    const date = formatDateTime(new Date());
+    const session = `# Session\n${date}\n- \n--------\n\n`;
+    // Add new session at the start of the document
+    view.dispatch({
+      changes: { from: 0, to: 0, insert: session },
+      selection: EditorSelection.single(0),
+    });
+    // Focus the editor after creating a new session at the '-' line and move the cursor to the end of the line
+    view.focus();
+    const newPosition = view.state.doc.lineAt(`# Session\n${date}\n-`.length + 1).to;
+    view.dispatch({
+      selection: {
+        anchor: newPosition,
+        head: newPosition,
+      },
+    });
+  }
+
   onMount(() => {
     view = createEditor();
     parsedContent = parseContent(view.state.doc.toString());
@@ -84,9 +106,12 @@
   });
 </script>
 
-<div class="flex flex-col self-center w-full max-w-[800px] flex-1 pt-16 gap-4">
+<div class="flex flex-col self-center w-full max-w-[800px] p-2 flex-1 pt-8 lg:pt-16 gap-4">
   <h1 class="text-5xl font-bold">Training tracker</h1>
-  {#if parsedContent}
+  <div class="flex gap-2">
+    <button onclick={createNewSession} class="rounded-full px-4 py-1 border border-blue-300 bg-blue-100">New Session</button>
+  </div>
+  <!-- {#if parsedContent}
     {#each parsedContent as session}
       <div class="flex flex-col p-2 rounded shadow border">
         <div class="flex flex-col">
@@ -122,6 +147,6 @@
         </div>
       </div>
     {/each}
-  {/if}
+  {/if} -->
   <div bind:this={editorContainer} class="flex-1"></div>
 </div>
