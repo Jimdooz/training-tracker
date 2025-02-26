@@ -22,10 +22,12 @@
     // Clear previous chart
     d3.select(svgElement).selectAll("*").remove();
     
-    // Create the SVG
+    // Create the SVG with responsive width
     const svg = d3.select(svgElement)
-      .attr("width", width)
-      .attr("height", height);
+      .attr("width", "100%")  // Changed to 100%
+      .attr("height", height)
+      .attr("viewBox", `0 0 ${width} ${height}`)
+      .attr("preserveAspectRatio", "xMidYMid meet");
     
     const chartWidth = width - margin.left - margin.right;
     const chartHeight = height - margin.top - margin.bottom;
@@ -54,17 +56,17 @@
     // Define colors for each state
     const colors = ["#10B981", "#F59E0B", "#EF4444"]; // Green, Yellow, Red
     
-    // Create tooltip
+    // Create tooltip with improved visibility
     const tooltipDiv = d3.select(tooltip)
-      .style("position", "absolute")
+      .style("position", "fixed")  // Changed from absolute to fixed
       .style("visibility", "hidden")
       .style("background", "#fff")
       .style("border", "1px solid #ddd")
       .style("border-radius", "4px")
       .style("padding", "10px")
-      .style("box-shadow", "0 2px 4px rgba(0,0,0,0.1)")
+      .style("box-shadow", "0 4px 8px rgba(0,0,0,0.15)")  // Enhanced shadow
       .style("pointer-events", "none")
-      .style("z-index", "10");
+      .style("z-index", "1000");  // Increased z-index
     
     // Add the stacked bars with tooltip
     chart.append("g")
@@ -97,8 +99,13 @@
             <strong>Total</strong>: ${total} sets
           `);
         
-        tooltipDiv.style("left", (event.pageX + 10) + "px")
-                .style("top", (event.pageY - 30) + "px");
+        // Improved positioning to prevent tooltip from going off-screen
+        const tooltipWidth = 220;  // Approximate width of tooltip
+        const xPos = Math.min(event.clientX + 10, window.innerWidth - tooltipWidth - 20);
+        const yPos = Math.max(20, event.clientY - 60);
+        
+        tooltipDiv.style("left", xPos + "px")
+                .style("top", yPos + "px");
       })
       .on("mouseout", function() {
         tooltipDiv.style("visibility", "hidden");
@@ -155,7 +162,7 @@
 </script>
 
 <div class="completion-stats-chart">
-  <svg bind:this={svgElement}></svg>
+  <svg bind:this={svgElement} width="100%" height={height}></svg>
   <div class="tooltip" bind:this={tooltip}></div>
 </div>
 
@@ -172,13 +179,15 @@
   }
   
   :global(.completion-stats-chart line,
-  .completion-stats-chart path) {
+  .completion-stats-chart path.domain) {
     stroke: currentColor;
   }
   
   .tooltip {
-    position: absolute;
-    z-index: 10;
+    position: fixed;
+    z-index: 1000;
     visibility: hidden;
+    max-width: 300px;
+    width: auto;
   }
 </style>

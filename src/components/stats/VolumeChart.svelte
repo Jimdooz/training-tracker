@@ -53,10 +53,12 @@
     
     if (aggregatedData.length === 0) return;
     
-    // Create the SVG
+    // Create the SVG with responsive width
     const svg = d3.select(svgElement)
-      .attr("width", width)
-      .attr("height", height);
+      .attr("width", "100%")  // Changed to 100%
+      .attr("height", height)
+      .attr("viewBox", `0 0 ${width} ${height}`)
+      .attr("preserveAspectRatio", "xMidYMid meet");
     
     const chartWidth = width - margin.left - margin.right;
     const chartHeight = height - margin.top - margin.bottom;
@@ -100,17 +102,17 @@
       .attr("stroke-width", 2)
       .attr("d", line);
     
-    // Create tooltip
+    // Create tooltip with improved visibility
     const tooltipDiv = d3.select(tooltip)
-      .style("position", "absolute")
+      .style("position", "fixed")  // Changed from absolute to fixed
       .style("visibility", "hidden")
       .style("background", "#fff")
       .style("border", "1px solid #ddd")
       .style("border-radius", "4px")
       .style("padding", "10px")
-      .style("box-shadow", "0 2px 4px rgba(0,0,0,0.1)")
+      .style("box-shadow", "0 4px 8px rgba(0,0,0,0.15)")  // Enhanced shadow
       .style("pointer-events", "none")
-      .style("z-index", "10");
+      .style("z-index", "1000");  // Increased z-index
     
     // Add data points with tooltips
     chart.selectAll(".dot")
@@ -129,8 +131,13 @@
             <strong>Volume:</strong> ${d.volume.toLocaleString()} kg×reps
           `);
         
-        tooltipDiv.style("left", (event.pageX + 10) + "px")
-                .style("top", (event.pageY - 30) + "px");
+        // Improved positioning to prevent tooltip from going off-screen
+        const tooltipWidth = 200;  // Approximate width of tooltip
+        const xPos = Math.min(event.clientX + 10, window.innerWidth - tooltipWidth - 20);
+        const yPos = Math.max(20, event.clientY - 60);
+        
+        tooltipDiv.style("left", xPos + "px")
+                .style("top", yPos + "px");
       })
       .on("mouseout", function() {
         tooltipDiv.style("visibility", "hidden");
@@ -170,7 +177,7 @@
 
 <div class="volume-chart">
   {#if data && data.length > 0}
-    <svg bind:this={svgElement}></svg>
+    <svg bind:this={svgElement} width="100%" height={height}></svg>
     <div class="tooltip" bind:this={tooltip}></div>
   {:else}
     <div class="empty-state">
@@ -209,8 +216,10 @@
   }
   
   .tooltip {
-    position: absolute;
-    z-index: 10;
+    position: fixed;
+    z-index: 1000;
     visibility: hidden;
+    max-width: 300px;
+    width: auto;
   }
 </style>

@@ -27,9 +27,9 @@
   
   // Calculate the appropriate chart width
   let chartWidth = $derived(
-    windowWidth < 640 ? windowWidth - 40 : // Small screens
-    windowWidth < 1024 ? Math.min(600, windowWidth - 40) : // Medium screens
-    Math.min(800, windowWidth - 40) // Large screens
+    windowWidth < 640 ? windowWidth - 20 : // Small screens, reduce padding
+    windowWidth < 1024 ? Math.min(800, windowWidth - 40) : // Medium screens
+    Math.min(1000, windowWidth - 40) // Large screens, allow charts to be wider
   );
   
   // Update unique exercises when sessions change
@@ -83,7 +83,7 @@
       </div>
       
       <!-- Exercise progress chart -->
-      <div class="mt-4 border rounded-lg bg-white p-4 shadow-sm">
+      <div class="mt-4 border rounded-lg bg-white p-4 shadow-sm w-full">
         {#if selectedExercise}
           <ExerciseProgressChart 
             data={extractExerciseProgress(sessions, selectedExercise)} 
@@ -118,7 +118,7 @@
       </div>
       
       <!-- Completion stats chart -->
-      <div class="mt-4 border rounded-lg bg-white p-4 shadow-sm">
+      <div class="mt-4 border rounded-lg bg-white p-4 shadow-sm w-full">
         <CompletionStatsChart 
           data={calculateCompletionStats(sessions, statsInterval)} 
           width={chartWidth} 
@@ -172,6 +172,7 @@
 
 <style>
   .stats-container {
+    width: 100%;
     max-width: 100%;
     margin: 0 auto;
   }
