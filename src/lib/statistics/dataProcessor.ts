@@ -31,6 +31,44 @@ export interface VolumeData {
   volume: number; // Typically weight * reps
 }
 
+// Cache for memoization
+interface CacheEntry<T> {
+  timestamp: number;
+  value: T;
+}
+
+// Set cache expiration to 30 seconds
+const CACHE_EXPIRATION = 30 * 1000;
+
+// Caches for expensive calculations
+const uniqueExercisesCache = new Map<string, CacheEntry<string[]>>();
+const exerciseProgressCache = new Map<string, CacheEntry<ExerciseProgress>>();
+const completionStatsCache = new Map<string, CacheEntry<CompletionStats[]>>();
+const volumeBySessionCache = new Map<string, CacheEntry<VolumeData[]>>();
+
+/**
+ * Generate a cache key for sessions array
+ */
+function generateSessionsCacheKey(sessions: TrainingSession[] | null | undefined): string {
+  if (!sessions || !Array.isArray(sessions) || sessions.length === 0) return 'empty';
+  // Use the latest session date + count as cache key
+  const latestSession = [...sessions].sort((a, b) => {
+    const dateA = a.date ? new Date(a.date).getTime() : 0;
+    const dateB = b.date ? new Date(b.date).getTime() : 0;
+    return dateB - dateA;
+  })[0];
+  
+  return `${sessions.length}-${latestSession.date ? new Date(latestSession.date).getTime() : 'nodate'}`;
+}
+
+/**
+ * Check if a cache entry is valid
+ */
+function isCacheValid<T>(entry: CacheEntry<T> | undefined): boolean {
+  if (!entry) return false;
+  return Date.now() - entry.timestamp < CACHE_EXPIRATION;
+}
+
 /**
  * Safely convert a date value to a Date object
  */
@@ -54,6 +92,15 @@ function safeGetDate(dateValue: Date | string | null | undefined): Date | null {
  * Extract a list of unique exercise names from training sessions
  */
 export function getUniqueExercises(sessions: TrainingSession[] | null | undefined): string[] {
+  // Generate cache key
+  const cacheKey = generateSessionsCacheKey(sessions);
+  const cached = uniqueExercisesCache.get(cacheKey);
+  
+  // Return cached value if valid
+  if (isCacheValid(cached)) {
+    return cached.value;
+  }
+  
   if (!sessions || !Array.isArray(sessions) || sessions.length === 0) return [];
   
   const exerciseSet = new Set<string>();
@@ -68,7 +115,15 @@ export function getUniqueExercises(sessions: TrainingSession[] | null | undefine
     }
   }
   
-  return Array.from(exerciseSet).sort();
+  const result = Array.from(exerciseSet).sort();
+  
+  // Cache the result
+  uniqueExercisesCache.set(cacheKey, {
+    timestamp: Date.now(),
+    value: result
+  });
+  
+  return result;
 }
 
 /**
@@ -78,6 +133,15 @@ export function extractExerciseProgress(
   sessions: TrainingSession[] | null | undefined, 
   exerciseName: string
 ): ExerciseProgress {
+  // Generate cache key
+  const cacheKey = `${generateSessionsCacheKey(sessions)}-${exerciseName}`;
+  const cached = exerciseProgressCache.get(cacheKey);
+  
+  // Return cached value if valid
+  if (isCacheValid(cached)) {
+    return cached.value;
+  }
+  
   const result: ExerciseProgress = {
     exerciseName,
     dates: [],
@@ -129,6 +193,12 @@ export function extractExerciseProgress(
     result.states.push(heaviestEffort.result.state);
   }
   
+  // Cache the result
+  exerciseProgressCache.set(cacheKey, {
+    timestamp: Date.now(),
+    value: result
+  });
+  
   return result;
 }
 
@@ -139,6 +209,15 @@ export function calculateCompletionStats(
   sessions: TrainingSession[] | null | undefined, 
   interval: 'week' | 'month' = 'week'
 ): CompletionStats[] {
+  // Generate cache key
+  const cacheKey = `${generateSessionsCacheKey(sessions)}-${interval}`;
+  const cached = completionStatsCache.get(cacheKey);
+  
+  // Return cached value if valid
+  if (isCacheValid(cached)) {
+    return cached.value;
+  }
+  
   if (!sessions || !Array.isArray(sessions) || sessions.length === 0) {
     return [];
   }
@@ -200,8 +279,16 @@ export function calculateCompletionStats(
   }
   
   // Convert map to array and sort by date
-  return Array.from(statsByPeriod.values())
+  const result = Array.from(statsByPeriod.values())
     .sort((a, b) => a.date.getTime() - b.date.getTime());
+  
+  // Cache the result
+  completionStatsCache.set(cacheKey, {
+    timestamp: Date.now(),
+    value: result
+  });
+  
+  return result;
 }
 
 /**
@@ -210,6 +297,15 @@ export function calculateCompletionStats(
 export function calculateVolumeBySession(
   sessions: TrainingSession[] | null | undefined
 ): VolumeData[] {
+  // Generate cache key
+  const cacheKey = generateSessionsCacheKey(sessions);
+  const cached = volumeBySessionCache.get(cacheKey);
+  
+  // Return cached value if valid
+  if (isCacheValid(cached)) {
+    return cached.value;
+  }
+  
   if (!sessions || !Array.isArray(sessions) || sessions.length === 0) {
     return [];
   }
@@ -252,6 +348,12 @@ export function calculateVolumeBySession(
       }
     }
   }
+  
+  // Cache the result
+  volumeBySessionCache.set(cacheKey, {
+    timestamp: Date.now(),
+    value: volumeData
+  });
   
   return volumeData;
 }
@@ -331,4 +433,15 @@ function downloadFile(content: string, fileName: string, contentType: string): v
   a.click();
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
+}
+
+/**
+ * Clear all caches
+ * Useful when data is updated or imported
+ */
+export function clearStatisticsCache(): void {
+  uniqueExercisesCache.clear();
+  exerciseProgressCache.clear();
+  completionStatsCache.clear();
+  volumeBySessionCache.clear();
 }

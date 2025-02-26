@@ -30,16 +30,18 @@
   import StatsView from "./components/StatsView.svelte";
 
   const STORAGE_KEY = "training-tracker-content";
+  const TAB_STORAGE_KEY = "training-tracker-active-tab";
   
   // Tab navigation constants
   const TABS = {
     TEXT: 'text',
     BLOCKS: 'blocks',
-    STATS: 'stats'  // Reserved for future use
+    STATS: 'stats'
   };
   
   let activeTab = $state(TABS.TEXT);
   let parsedContent: ReturnType<typeof parseContent> | null = $state(null);
+  let isContentParsed = $state(false);
 
   // Load content from localStorage or return default content if empty
   function loadContent(): string {
@@ -49,17 +51,36 @@
       "# Training Tracker\n\nStart writing here..."
     );
   }
+  
+  // Load active tab from localStorage
+  function loadActiveTab(): string {
+    if (typeof window === "undefined") return TABS.TEXT;
+    return localStorage.getItem(TAB_STORAGE_KEY) || TABS.TEXT;
+  }
 
   // Save content to localStorage
   function saveContent(content: string) {
     if (typeof window === "undefined") return;
     localStorage.setItem(STORAGE_KEY, content);
   }
+  
+  // Save active tab to localStorage
+  function saveActiveTab(tab: string) {
+    if (typeof window === "undefined") return;
+    localStorage.setItem(TAB_STORAGE_KEY, tab);
+  }
 
   const updateListener = EditorView.updateListener.of((update) => {
     if (update.docChanged) {
       const content = update.state.doc.toString();
-      parsedContent = parseContent(content);
+      // Only parse content when in blocks or stats view for better performance
+      if (activeTab === TABS.BLOCKS || activeTab === TABS.STATS) {
+        parsedContent = parseContent(content);
+        isContentParsed = true;
+      } else {
+        // Mark content as needing parsing
+        isContentParsed = false;
+      }
       saveContent(content);
     }
   });
@@ -138,17 +159,37 @@
   }
 
   function setActiveTab(tab: string) {
-    activeTab = tab;
+    // Don't do anything if the tab is already active
+    if (activeTab === tab) return;
     
-    // If switching to blocks or stats view, make sure the content is parsed
-    if ((tab === TABS.BLOCKS || tab === TABS.STATS) && view) {
-      parsedContent = parseContent(view.state.doc.toString());
+    // Parse content if needed when switching to blocks or stats view
+    if ((tab === TABS.BLOCKS || tab === TABS.STATS) && view && !isContentParsed) {
+      // Show parsing is happening by setting immediately to the new tab
+      activeTab = tab;
+      saveActiveTab(tab);
+      
+      // Use setTimeout to allow the UI to update before doing the heavy parsing
+      setTimeout(() => {
+        parsedContent = parseContent(view.state.doc.toString());
+        isContentParsed = true;
+      }, 10);
+    } else {
+      activeTab = tab;
+      saveActiveTab(tab);
     }
   }
 
   onMount(() => {
     view = createEditor();
-    parsedContent = parseContent(view.state.doc.toString());
+    // Load the active tab from localStorage
+    activeTab = loadActiveTab();
+    
+    // If starting on blocks or stats tab, parse the content
+    if (activeTab === TABS.BLOCKS || activeTab === TABS.STATS) {
+      parsedContent = parseContent(view.state.doc.toString());
+      isContentParsed = true;
+    }
+    
     return () => {
       view.destroy();
     };
@@ -249,7 +290,12 @@
   <!-- Block view -->
   {#if activeTab === TABS.BLOCKS}
     <div class="flex-1 overflow-y-auto">
-      {#if parsedContent && parsedContent.length > 0}
+      {#if !isContentParsed}
+        <!-- Loading indicator for blocks view -->
+        <div class="flex justify-center items-center h-64">
+          <div class="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+        </div>
+      {:else if parsedContent && parsedContent.length > 0}
         <div>
           {#each parsedContent as session}
             <SessionCard {session} />
@@ -267,7 +313,14 @@
   <!-- Stats View -->
   {#if activeTab === TABS.STATS}
     <div class="flex-1 overflow-y-auto">
-      <StatsView sessions={parsedContent || []} />
+      {#if !isContentParsed}
+        <!-- Loading indicator for stats view -->
+        <div class="flex justify-center items-center h-64">
+          <div class="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+        </div>
+      {:else}
+        <StatsView sessions={parsedContent || []} />
+      {/if}
     </div>
   {/if}
 </div>

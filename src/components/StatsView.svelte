@@ -3,6 +3,7 @@
   import type { TrainingSession } from '../lib/parsers/mod';
   import ExerciseProgressChart from './stats/ExerciseProgressChart.svelte';
   import CompletionStatsChart from './stats/CompletionStatsChart.svelte';
+  import VolumeChart from './stats/VolumeChart.svelte';
   import {
     extractExerciseProgress,
     getUniqueExercises,
@@ -16,6 +17,7 @@
   let statsInterval = $state<'week' | 'month'>('week');
   let uniqueExercises: string[] = $state([]);
   let isChartReady = $state(false);
+  let loadingStage = $state('');
   let windowWidth = $state(0);
   
   // Get the chart width based on window size
@@ -32,17 +34,46 @@
     Math.min(1000, windowWidth - 40) // Large screens, allow charts to be wider
   );
   
-  // Update unique exercises when sessions change
-  $effect(() => {
-    if (!sessions || sessions.length === 0) return;
+  // Function to initialize data with a loading state
+  async function initializeData() {
+    if (!sessions || sessions.length === 0) {
+      isChartReady = true;
+      return;
+    }
+    
+    isChartReady = false;
+    
+    // Use setTimeout to allow UI updates between each calculation step
+    loadingStage = 'Preparing statistics...';
+    await new Promise(r => setTimeout(r, 10));
+    
+    loadingStage = 'Analyzing exercises...';
     uniqueExercises = getUniqueExercises(sessions);
+    await new Promise(r => setTimeout(r, 10));
     
     // Select the first exercise by default if none is selected
     if (!selectedExercise && uniqueExercises.length > 0) {
       selectedExercise = uniqueExercises[0];
     }
     
+    loadingStage = 'Calculating progress...';
+    if (selectedExercise) {
+      // Pre-fetch the first exercise to warm up the cache
+      extractExerciseProgress(sessions, selectedExercise);
+    }
+    await new Promise(r => setTimeout(r, 10));
+    
+    loadingStage = 'Calculating completion stats...';
+    calculateCompletionStats(sessions, statsInterval);
+    await new Promise(r => setTimeout(r, 10));
+    
+    loadingStage = '';
     isChartReady = true;
+  }
+  
+  // Update unique exercises when sessions change
+  $effect(() => {
+    initializeData();
   });
   
   function handleWindowResize() {
@@ -65,7 +96,12 @@
       <p class="text-gray-500">No training data available</p>
       <p class="text-sm text-gray-400 mt-2">Start by recording your training sessions in Text Mode</p>
     </div>
-  {:else if isChartReady}
+  {:else if !isChartReady}
+    <div class="flex flex-col items-center justify-center h-64 text-center">
+      <div class="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500 mb-4"></div>
+      <p class="text-blue-500">{loadingStage}</p>
+    </div>
+  {:else}
     <!-- Exercise selector -->
     <div class="mb-8">
       <h3 class="text-lg font-medium mb-3">Exercise Progress</h3>
@@ -163,17 +199,14 @@
         {/if}
       </div>
     </div>
-  {:else}
-    <div class="flex justify-center items-center h-64">
-      <div class="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
-    </div>
   {/if}
 </div>
 
 <style>
   .stats-container {
-    width: 100%;
-    max-width: 100%;
+    max-width: 1200px;
     margin: 0 auto;
   }
 </style>
+
+  
