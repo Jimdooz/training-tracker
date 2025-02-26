@@ -26,9 +26,18 @@
     sessionTitleCompletions
   } from "./lib/extensions/completions";
   import { parseContent } from "./lib/parsers/mod";
+  import SessionCard from "./components/SessionCard.svelte";
 
   const STORAGE_KEY = "training-tracker-content";
-
+  
+  // Tab navigation constants
+  const TABS = {
+    TEXT: 'text',
+    BLOCKS: 'blocks',
+    STATS: 'stats'  // Reserved for future use
+  };
+  
+  let activeTab = $state(TABS.TEXT);
   let parsedContent: ReturnType<typeof parseContent> | null = $state(null);
 
   // Load content from localStorage or return default content if empty
@@ -49,7 +58,7 @@
   const updateListener = EditorView.updateListener.of((update) => {
     if (update.docChanged) {
       const content = update.state.doc.toString();
-      parseContent(content);
+      parsedContent = parseContent(content);
       saveContent(content);
     }
   });
@@ -127,6 +136,15 @@
     });
   }
 
+  function setActiveTab(tab: string) {
+    activeTab = tab;
+    
+    // If switching to blocks view, make sure the content is parsed
+    if (tab === TABS.BLOCKS && view) {
+      parsedContent = parseContent(view.state.doc.toString());
+    }
+  }
+
   onMount(() => {
     view = createEditor();
     parsedContent = parseContent(view.state.doc.toString());
@@ -152,12 +170,64 @@
   {/if}
 {/snippet}
 
+{#snippet textIcon()}
+  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+    <path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+  </svg>
+{/snippet}
+
+{#snippet blocksIcon()}
+  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+    <path stroke-linecap="round" stroke-linejoin="round" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
+  </svg>
+{/snippet}
+
+{#snippet statsIcon()}
+  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+    <path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+  </svg>
+{/snippet}
+
 <div class="flex flex-col self-center w-full max-w-[800px] p-2 flex-1 pt-8 lg:pt-16 gap-4">
   <h1 class="text-5xl font-bold">Training tracker</h1>
+  
+  <!-- Tab Navigation with responsive design -->
+  <div class="flex border-b border-neutral-200">
+    <button 
+      class="px-4 py-2 font-medium {activeTab === TABS.TEXT ? 'text-blue-500 border-b-2 border-blue-500' : 'text-neutral-500 hover:text-neutral-700'}"
+      onclick={() => setActiveTab(TABS.TEXT)}
+    >
+      <span class="hidden sm:inline">Text Mode</span>
+      <span class="sm:hidden" aria-label="Text Mode">
+        {@render textIcon()}
+      </span>
+    </button>
+    <button 
+      class="px-4 py-2 font-medium {activeTab === TABS.BLOCKS ? 'text-blue-500 border-b-2 border-blue-500' : 'text-neutral-500 hover:text-neutral-700'}"
+      onclick={() => setActiveTab(TABS.BLOCKS)}
+    >
+      <span class="hidden sm:inline">Block View</span>
+      <span class="sm:hidden" aria-label="Block View">
+        {@render blocksIcon()}
+      </span>
+    </button>
+    <button 
+      class="px-4 py-2 font-medium text-neutral-300 cursor-not-allowed"
+      disabled
+    >
+      <span class="hidden sm:inline">Stats (Coming Soon)</span>
+      <span class="sm:hidden" aria-label="Stats (Coming Soon)">
+        {@render statsIcon()}
+      </span>
+    </button>
+  </div>
+  
+  <!-- Action buttons -->
+  {#if activeTab === TABS.TEXT}
   <div class="flex gap-4">
     <div class="flex gap-2 flex-1">
-    <button onclick={createNewSession} class="rounded-xl px-4 py-1 border border-b-3 border-blue-300 bg-blue-100 cursor-pointer hover:bg-blue-200 transition-all">New</button>
-    <button onclick={namedSession} class="rounded-xl px-4 py-1 border border-b-3 border-blue-300 bg-blue-100 cursor-pointer hover:bg-blue-200 transition-all">Named</button>
+      <button onclick={createNewSession} class="rounded-xl px-4 py-1 border border-b-3 border-blue-300 bg-blue-100 cursor-pointer hover:bg-blue-200 transition-all">New</button>
+      <button onclick={namedSession} class="rounded-xl px-4 py-1 border border-b-3 border-blue-300 bg-blue-100 cursor-pointer hover:bg-blue-200 transition-all">Named</button>
     </div>
     <div class="flex gap-2">
       <button onclick={undoText} class="rounded-xl px-4 py-1 border border-b-3 border-neutral-300 bg-neutral-100 cursor-pointer hover:bg-neutral-200 transition-all">
@@ -168,42 +238,28 @@
       </button>
     </div>
   </div>
-  <!-- {#if parsedContent}
-    {#each parsedContent as session}
-      <div class="flex flex-col p-2 rounded shadow border">
-        <div class="flex flex-col">
-          {#if session.title}
-            <h3 class="font-bold">{session.title || "Empty :{"}</h3>
-          {/if}
-          {#if session.date}
-            <p>{new Date(session.date).toLocaleDateString()}</p>
-          {/if}
-        </div>
-        <div class="flex flex-col">
-          {#each session.exercises as exercise}
-            <div class="flex flex-col gap-1">
-              <p>
-                {exercise.name}
-                <span class="text-sm text-gray-500"
-                  >({exercise.targetSets}x{exercise.target.type == "reps"
-                    ? exercise.target.count
-                    : `${exercise.target.duration.value}${exercise.target.duration.unit}`})</span
-                >
-              </p>
-              {#each exercise.sets as set}
-                <div class="flex gap-2 text-xs">
-                  {#each set.efforts as effort}
-                    <div class="flex flex-col gap-1">
-                      <p>- {effort.load?.value}{effort.load?.unit} {effort.result.state}{effort.result.count}</p>
-                    </div>
-                  {/each}
-                </div>
-              {/each}
-            </div>
+  {/if}
+  
+  <!-- Text editor view -->
+  <div class="flex-1 {activeTab === TABS.TEXT ? 'block' : 'hidden'}">
+    <div bind:this={editorContainer} />
+  </div>
+  
+  <!-- Block view -->
+  {#if activeTab === TABS.BLOCKS}
+    <div class="flex-1 overflow-y-auto">
+      {#if parsedContent && parsedContent.length > 0}
+        <div>
+          {#each parsedContent as session}
+            <SessionCard {session} />
           {/each}
         </div>
-      </div>
-    {/each}
-  {/if} -->
-  <div bind:this={editorContainer} class="flex-1"></div>
+      {:else}
+        <div class="flex flex-col items-center justify-center h-64 text-gray-500">
+          <p>No training sessions found</p>
+          <p class="text-sm">Start by creating a new session in Text Mode</p>
+        </div>
+      {/if}
+    </div>
+  {/if}
 </div>
