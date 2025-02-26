@@ -27,6 +27,7 @@
   } from "./lib/extensions/completions";
   import { parseContent } from "./lib/parsers/mod";
   import SessionCard from "./components/SessionCard.svelte";
+  import StatsView from "./components/StatsView.svelte";
 
   const STORAGE_KEY = "training-tracker-content";
   
@@ -139,8 +140,8 @@
   function setActiveTab(tab: string) {
     activeTab = tab;
     
-    // If switching to blocks view, make sure the content is parsed
-    if (tab === TABS.BLOCKS && view) {
+    // If switching to blocks or stats view, make sure the content is parsed
+    if ((tab === TABS.BLOCKS || tab === TABS.STATS) && view) {
       parsedContent = parseContent(view.state.doc.toString());
     }
   }
@@ -188,7 +189,7 @@
   </svg>
 {/snippet}
 
-<div class="flex flex-col self-center w-full max-w-[800px] p-2 flex-1 pt-8 lg:pt-16 gap-4">
+<div class="flex flex-col self-center w-full max-w-[1200px] p-2 flex-1 pt-8 lg:pt-16 gap-4">
   <h1 class="text-5xl font-bold">Training tracker</h1>
   
   <!-- Tab Navigation with responsive design -->
@@ -212,11 +213,11 @@
       </span>
     </button>
     <button 
-      class="px-4 py-2 font-medium text-neutral-300 cursor-not-allowed"
-      disabled
+      class="px-4 py-2 font-medium {activeTab === TABS.STATS ? 'text-blue-500 border-b-2 border-blue-500' : 'text-neutral-500 hover:text-neutral-700'}"
+      onclick={() => setActiveTab(TABS.STATS)}
     >
-      <span class="hidden sm:inline">Stats (Coming Soon)</span>
-      <span class="sm:hidden" aria-label="Stats (Coming Soon)">
+      <span class="hidden sm:inline">Stats</span>
+      <span class="sm:hidden" aria-label="Stats">
         {@render statsIcon()}
       </span>
     </button>
@@ -260,6 +261,13 @@
           <p class="text-sm">Start by creating a new session in Text Mode</p>
         </div>
       {/if}
+    </div>
+  {/if}
+
+  <!-- Stats View -->
+  {#if activeTab === TABS.STATS}
+    <div class="flex-1 overflow-y-auto">
+      <StatsView sessions={parsedContent || []} />
     </div>
   {/if}
 </div>
